@@ -36,7 +36,7 @@ in an interview.
 - Validate every endpoint input and every WebSocket message, with size limits.
 
 ## Git workflow (applies to every phase)
-Repository: <https://github.com/ZeroxxG/codesync.git>
+Repository: <https://github.com/zuhaib9/codesync.git>
 
 - At the start, check whether the repo is cloned and the remote is set. If not, run
   `git remote add origin <repo url>`. Use the `main` branch.

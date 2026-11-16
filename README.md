@@ -2,15 +2,16 @@
 
 A real-time collaborative code editor with conflict-free Yjs CRDT synchronization and secure sandboxed execution of untrusted code inside isolated, resource-constrained container environments.
 
-[![CI](https://github.com/ZeroxxG/codesync/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeroxxG/codesync/actions/workflows/ci.yml)
+[![CI](https://github.com/zuhaib9/codesync/actions/workflows/ci.yml/badge.svg)](https://github.com/zuhaib9/codesync/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)
 ![Django](https://img.shields.io/badge/Django-5.1-092E20?logo=django&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Sandboxed-2496ED?logo=docker&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Local%20Development-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-[Live Demo](https://codesyncapp.duckdns.org) · [Demo Video](<DEMO VIDEO URL>) · [Architecture](docs/DESIGN.md) · [Security](docs/SECURITY.md) · [Benchmarks](docs/BENCHMARKS.md) · [Deployment](docs/DEPLOYMENT.md)
+[Architecture](docs/DESIGN.md) · [Security](docs/SECURITY.md) · [Benchmarks](docs/BENCHMARKS.md) · [Deployment Guide](docs/DEPLOYMENT.md)
 
 ---
 
@@ -20,8 +21,9 @@ A real-time collaborative code editor with conflict-free Yjs CRDT synchronizatio
 
 *Two browser sessions editing Python code with live remote cursors, followed by sandboxed execution streaming stdout/stderr back into the terminal drawer.*
 
-> **Live Demo**: [https://codesyncapp.duckdns.org](https://codesyncapp.duckdns.org)  
-> **Demo Access**: Instant anonymous room creation or guest join — no login required. Optional user registration and login available on the home page.
+> [!NOTE]
+> **Project Status**: Currently in active local development (not yet deployed to production).
+> To run and test the application locally, follow the [Quick Start](#quick-start) guide below.
 
 ---
 
@@ -138,10 +140,10 @@ flowchart TD
 | **Sandbox Runner** | Celery | 5.4 | Distributed asynchronous task queue for execution orchestration. |
 | | Docker Engine SDK | Python `docker` | Programmatic container lifecycle management with strict Linux cgroups containment. |
 | | Alpine Linux | 3.20 | Minimal attack surface and sub-100MB base images for Python, JS, and C++. |
-| **Infrastructure** | Nginx | 1.24 | Edge SSL termination, `ip_hash` WebSocket sticky routing, and API reverse proxying. |
+| **Infrastructure** | Docker Compose | Local Stack | Multi-service local orchestration (Postgres, Redis, API, Realtime cluster, Runner). |
+| | Nginx | 1.24 | Edge reverse proxy, `ip_hash` WebSocket sticky routing, and API routing. |
 | | Redis | 7.2 | Celery task broker, execution lock mutex, and realtime pub/sub message bus. |
-| | Vercel | Edge Network | Global CDN hosting for static frontend SPA with production API rewrites. |
-| | Azure VM | Ubuntu 22.04 LTS | Cloud compute hosting Nginx, API, Hocuspocus cluster, and runner worker. |
+| | Cloud VM / Vercel | Target Deploy | Prepared hybrid topology for cloud Linux VM compute and edge static CDN hosting. |
 
 ---
 
@@ -263,7 +265,7 @@ GitHub Actions runs on every push and pull request to `main` (`.github/workflows
 
 ### 1. Clone & Preflight Check
 ```bash
-git clone https://github.com/ZeroxxG/codesync.git
+git clone https://github.com/zuhaib9/codesync.git
 cd codesync
 
 # Run diagnostic tool to check Docker, tool versions, and port availability
@@ -341,15 +343,15 @@ pnpm --prefix apps/web build
 
 ---
 
-## Deployment
+## Deployment & Infrastructure (Target Architecture)
 
-CodeSync runs in production across a hybrid cloud topology combining **Vercel** and **Microsoft Azure**:
+While currently running in **local development**, CodeSync includes complete production configurations for a hybrid cloud topology combining **Vercel** and a Linux Cloud VM (e.g. **Azure / AWS / DigitalOcean**):
 
-- **Edge Frontend**: Hosted globally on Vercel's Edge Network, serving the React 18 SPA and proxying `/api/*` REST calls to the Azure backend.
-- **Compute & Execution Tier**: Hosted on an Azure Linux VM (`Standard_B2s`, Ubuntu 24.04 LTS) running Docker Compose orchestration for Nginx, Gunicorn/Django API, two clustered Hocuspocus realtime instances, and the Celery execution runner with host Docker daemon access.
-- **Persistence & Gateway**: Backed by Azure Database for PostgreSQL Flexible Server, Redis 7 message bus, and an Nginx reverse proxy terminating Let's Encrypt SSL certificates under domain `https://codesyncapp.duckdns.org`.
+- **Edge Frontend**: Ready for Vercel Edge Network deployment with `vercel.json` edge rewrites for `/api/*` REST calls.
+- **Compute & Execution Tier**: Orchestrated via `docker-compose.prod.yml` to run Nginx, Gunicorn/Django API, clustered Hocuspocus realtime instances, and the Celery execution runner with host Docker daemon access.
+- **Persistence & Gateway**: Configured for managed PostgreSQL 16, Redis 7 message bus, and an Nginx reverse proxy with SSL termination.
 
-For step-by-step Azure provisioning scripts, environment configuration, systemd services, and production deployment checklists, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+For step-by-step VM provisioning scripts, environment configuration, systemd services, and production deployment checklists, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ---
 
@@ -415,9 +417,7 @@ codesync/
 ## Author & License
 
 ### Author
-- **GitHub**: [<GITHUB URL>](<GITHUB URL>)
-- **LinkedIn**: [<LINKEDIN URL>](<LINKEDIN URL>)
-- **Live Demo**: [https://codesyncapp.duckdns.org](https://codesyncapp.duckdns.org)
+- **Zuhaib Tanveer** - [GitHub (@zuhaib9)](https://github.com/zuhaib9)
 
 *Open to engineering discussions, feedback, and software engineering opportunities.*
 
