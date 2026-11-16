@@ -1,0 +1,193 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./apps/api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      INTERNAL_API_URL: http://api:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/api:/app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    profiles:
+      - full
+
+  realtime-1:
+    build: ./apps/realtime
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 1234
+      REDIS_URL: redis://redis:6379/0
+      INTERNAL_API_URL: http://api:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/realtime:/app
+      - /app/node_modules
+      - /app/dist
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:1234/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    profiles:
+      - full
+
+  realtime-2:
+    build: ./apps/realtime
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 1234
+      REDIS_URL: redis://redis:6379/0
+      INTERNAL_API_URL: http://api:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/realtime:/app
+      - /app/node_modules
+      - /app/dist
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:1234/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    profiles:
+      - full
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "1234:1234"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      realtime-1:
+        condition: service_healthy
+      realtime-2:
+        condition: service_healthy
+    profiles:
+      - full
+
+  sandbox-python:
+    build: ./docker/sandbox-python
+    image: codesync-sandbox-python:latest
+    restart: "no"
+    entrypoint: ["echo", "codesync-sandbox-python ready"]
+    profiles:
+      - full
+
+  sandbox-javascript:
+    build: ./docker/sandbox-javascript
+    image: codesync-sandbox-javascript:latest
+    restart: "no"
+    entrypoint: ["echo", "codesync-sandbox-javascript ready"]
+    profiles:
+      - full
+
+  sandbox-cpp:
+    build: ./docker/sandbox-cpp
+    image: codesync-sandbox-cpp:latest
+    restart: "no"
+    entrypoint: ["echo", "codesync-sandbox-cpp ready"]
+    profiles:
+      - full
+
+  runner:
+    build: ./apps/runner
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      INTERNAL_API_URL: http://api:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+      sandbox-python:
+        condition: service_completed_successfully
+      sandbox-javascript:
+        condition: service_completed_successfully
+      sandbox-cpp:
+        condition: service_completed_successfully
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./apps/runner:/app
+    profiles:
+      - full
+
+  web:
+    build: ./apps/web
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      api:
+        condition: service_healthy
+      realtime-1:
+        condition: service_healthy
+      realtime-2:
+        condition: service_healthy
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    profiles:
+      - full
+
+volumes:
+  pgdata:
+  redisdata:
